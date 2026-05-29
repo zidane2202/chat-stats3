@@ -17,22 +17,34 @@ html, body {
   overflow: hidden;
 }
 
-/* ── LAYOUT ── */
 #app {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
-/* ── HEADER ── */
 #header {
   background: #0d1b2a;
   border-bottom: 1px solid rgba(255,255,255,0.07);
   padding: 16px 20px 14px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-#header h1 { font-size: 20px; font-weight: 600; }
-#header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+#header-left h1 { font-size: 20px; font-weight: 600; }
+#header-left p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+#timer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  color: #1ACEA0;
+  letter-spacing: 0.06em;
+  background: #0a1520;
+  border: 1px solid rgba(26,206,160,0.25);
+  border-radius: 8px;
+  padding: 6px 16px;
+}
 .dot {
   display: inline-block; width: 7px; height: 7px;
   background: #1ACEA0; border-radius: 50%; margin-right: 7px;
@@ -40,7 +52,6 @@ html, body {
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-/* ── MESSAGES ── */
 #messages {
   flex: 1;
   overflow-y: auto;
@@ -78,7 +89,6 @@ html, body {
 }
 .msg.typing { color: #64748b; font-style: italic; }
 
-/* ── CLAVIER ── */
 #math-bar {
   background: #0a1520;
   border-top: 1px solid rgba(26,206,160,0.15);
@@ -119,7 +129,6 @@ html, body {
 .k.stat  { color: #1ACEA0; }
 .k.logic { color: #f9a8d4; }
 
-/* ── INPUT ZONE ── */
 #input-zone {
   background: #0d1b2a;
   border-top: 1px solid rgba(255,255,255,0.07);
@@ -187,13 +196,14 @@ html, body {
 <body>
 <div id="app">
 
-  <!-- HEADER -->
   <div id="header">
-    <h1><span class="dot"></span>Hi there! 👋</h1>
-    <p>Start a chat. We're here to help you 24/7.</p>
+    <div id="header-left">
+      <h1><span class="dot"></span>Hi there! 👋</h1>
+      <p>Start a chat. We're here to help you 24/7.</p>
+    </div>
+    <div id="timer">60:00</div>
   </div>
 
-  <!-- MESSAGES -->
   <div id="messages">
     <div class="msg bot">
       Bonjour ! Je suis ravi de te retrouver pour cette épreuve de statistiques descriptives.<br><br>
@@ -204,7 +214,6 @@ html, body {
     </div>
   </div>
 
-  <!-- CLAVIER MATH -->
   <div id="math-bar">
     <div class="kbd-sections">
 
@@ -371,7 +380,6 @@ html, body {
     </div>
   </div>
 
-  <!-- INPUT ZONE -->
   <div id="input-zone">
     <button id="kbd-toggle" onclick="toggleKbd()">∑ Clavier math ▼</button>
     <div id="input-row">
@@ -383,14 +391,32 @@ html, body {
 </div>
 
 <script>
-  const WEBHOOK = 'https://promote1.app.n8n.cloud/webhook/9072b6e9-4f73-4360-bacd-b46c5af07615/chat';
+  (function() {
+    const DURATION = 60 * 60;
+    const start = Date.now();
+    const el = document.getElementById('timer');
+    const iv = setInterval(function() {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      const remaining = DURATION - elapsed;
+      if (remaining <= 0) {
+        clearInterval(iv);
+        el.textContent = '⏱ Temps écoulé !';
+        el.style.color = '#ef4444';
+        return;
+      }
+      if (remaining <= 300) el.style.color = '#fbbf24';
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      el.textContent = '⏱ ' + m + ':' + s;
+    }, 1000);
+  })();
 
-  /* Session */
+  const WEBHOOK = 'https://n8n-pro.kaeyros.org/webhook/4658ac2d-08f3-4fe6-9e8a-c5cc43c2eafa/chat';
+
   if (!sessionStorage.getItem('sid'))
     sessionStorage.setItem('sid', 'sess_' + Date.now());
   const SID = sessionStorage.getItem('sid');
 
-  /* Auto-resize textarea */
   const ta = document.getElementById('userInput');
   ta.addEventListener('input', () => {
     ta.style.height = 'auto';
@@ -400,7 +426,6 @@ html, body {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
   });
 
-  /* Clavier */
   let kbdOpen = false;
   function toggleKbd() {
     kbdOpen = !kbdOpen;
@@ -415,7 +440,6 @@ html, body {
     ta.focus();
   }
 
-  /* Messages */
   const box = document.getElementById('messages');
   function addMsg(html, role) {
     const d = document.createElement('div');
@@ -426,7 +450,6 @@ html, body {
     return d;
   }
 
-  /* Envoi */
   async function sendMsg() {
     const text = ta.value.trim();
     if (!text) return;
