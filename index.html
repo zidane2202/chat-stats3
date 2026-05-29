@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chat — Statistiques</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%; width: 100%;
+  background: #0d1b2a;
+  font-family: 'DM Sans', sans-serif;
+  color: #e2eaf4;
+  overflow: hidden;
+}
+
+/* ── LAYOUT ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── HEADER ── */
+#header {
+  background: #0d1b2a;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 16px 20px 14px;
+  flex-shrink: 0;
+}
+#header h1 { font-size: 20px; font-weight: 600; }
+#header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+.dot {
+  display: inline-block; width: 7px; height: 7px;
+  background: #1ACEA0; border-radius: 50%; margin-right: 7px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── MESSAGES ── */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+#messages::-webkit-scrollbar { width: 3px; }
+#messages::-webkit-scrollbar-thumb { background: #1a2f44; border-radius: 4px; }
+
+.msg {
+  max-width: 75%;
+  padding: 11px 15px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.65;
+  animation: fadeUp .2s ease both;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+.msg.bot {
+  background: #1a2f44;
+  border: 1px solid rgba(255,255,255,0.06);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.msg.user {
+  background: #1ACEA0;
+  color: #0a1a10;
+  align-self: flex-end;
+  font-weight: 500;
+  border-bottom-right-radius: 4px;
+}
+.msg.typing { color: #64748b; font-style: italic; }
+
+/* ── CLAVIER ── */
+#math-bar {
+  background: #0a1520;
+  border-top: 1px solid rgba(26,206,160,0.15);
+  padding: 8px 10px 10px;
+  overflow-y: auto;
+  max-height: 240px;
+  display: none;
+  flex-shrink: 0;
+}
+#math-bar.open { display: block; }
+
+.kbd-sections { display: flex; flex-direction: column; gap: 7px; }
+.kbd-section  { display: flex; flex-direction: column; gap: 3px; }
+.kbd-label {
+  font-size: 10px; color: #475569;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.kbd-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.k {
+  background: #1a2f44;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 5px;
+  color: #e2eaf4;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 5px 8px;
+  cursor: pointer;
+  min-width: 32px;
+  text-align: center;
+  line-height: 1.3;
+  user-select: none;
+  transition: background .1s, color .1s, transform .07s;
+}
+.k:hover  { background: #1ACEA0; color: #0a1a10; }
+.k:active { transform: scale(.88); }
+.k.op    { color: #fbbf24; }
+.k.gr    { color: #93c5fd; }
+.k.stat  { color: #1ACEA0; }
+.k.logic { color: #f9a8d4; }
+
+/* ── INPUT ZONE ── */
+#input-zone {
+  background: #0d1b2a;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 10px 12px 12px;
+  flex-shrink: 0;
+}
+#kbd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #1a2f44;
+  border: 1px solid rgba(26,206,160,0.3);
+  border-radius: 6px;
+  color: #1ACEA0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: background .15s;
+}
+#kbd-toggle:hover { background: #1ACEA0; color: #0a1a10; }
+
+#input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+#userInput {
+  flex: 1;
+  background: #1a2f44;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: #e2eaf4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  resize: none;
+  outline: none;
+  min-height: 44px;
+  max-height: 110px;
+  line-height: 1.5;
+  transition: border-color .2s;
+}
+#userInput::placeholder { color: #475569; }
+#userInput:focus { border-color: #1ACEA0; }
+
+#sendBtn {
+  background: #1ACEA0;
+  border: none;
+  border-radius: 10px;
+  color: #0a1a10;
+  font-size: 18px;
+  width: 44px; height: 44px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s, transform .1s;
+}
+#sendBtn:hover  { background: #15b38a; }
+#sendBtn:active { transform: scale(.93); }
+#sendBtn:disabled { background: #1a2f44; color: #475569; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <h1><span class="dot"></span>Hi there! 👋</h1>
+    <p>Start a chat. We're here to help you 24/7.</p>
+  </div>
+
+  <!-- MESSAGES -->
+  <div id="messages">
+    <div class="msg bot">
+      Bonjour ! Je suis ravi de te retrouver pour cette épreuve de statistiques descriptives.<br><br>
+      Nous allons évaluer ta compréhension à travers <strong style="color:#1ACEA0">4 cas distincts</strong>, chacun composé de 5 questions — soit <strong style="color:#1ACEA0">20 points</strong> au total. Durée : environ <strong style="color:#1ACEA0">1 heure</strong>.<br><br>
+      Les données : <strong style="color:#1ACEA0">8 ; 5 ; 12 ; 3 ; 9 ; 7 ; 2 ; 8 ; 6 ; 10</strong><br><br>
+      Commençons par le premier cas : <strong style="color:#1ACEA0">La Moyenne</strong>.<br><br>
+      <strong>Question 1a</strong> : Donne la définition de la moyenne arithmétique.
+    </div>
+  </div>
+
+  <!-- CLAVIER MATH -->
+  <div id="math-bar">
+    <div class="kbd-sections">
+
+      <div class="kbd-section">
+        <div class="kbd-label">Opérations</div>
+        <div class="kbd-row">
+          <button class="k op" onclick="ins('+')">+</button>
+          <button class="k op" onclick="ins('−')">−</button>
+          <button class="k op" onclick="ins('×')">×</button>
+          <button class="k op" onclick="ins('÷')">÷</button>
+          <button class="k op" onclick="ins('=')"> = </button>
+          <button class="k op" onclick="ins('≠')">≠</button>
+          <button class="k op" onclick="ins('≈')">≈</button>
+          <button class="k op" onclick="ins('±')">±</button>
+          <button class="k op" onclick="ins('∓')">∓</button>
+          <button class="k op" onclick="ins('·')">·</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Comparaison & Ensembles</div>
+        <div class="kbd-row">
+          <button class="k" onclick="ins('≤')">≤</button>
+          <button class="k" onclick="ins('≥')">≥</button>
+          <button class="k" onclick="ins('<')">&lt;</button>
+          <button class="k" onclick="ins('>')">&gt;</button>
+          <button class="k" onclick="ins('≪')">≪</button>
+          <button class="k" onclick="ins('≫')">≫</button>
+          <button class="k" onclick="ins('∈')">∈</button>
+          <button class="k" onclick="ins('∉')">∉</button>
+          <button class="k" onclick="ins('⊂')">⊂</button>
+          <button class="k" onclick="ins('⊃')">⊃</button>
+          <button class="k" onclick="ins('⊆')">⊆</button>
+          <button class="k" onclick="ins('⊇')">⊇</button>
+          <button class="k" onclick="ins('∪')">∪</button>
+          <button class="k" onclick="ins('∩')">∩</button>
+          <button class="k" onclick="ins('∅')">∅</button>
+          <button class="k" onclick="ins('ℝ')">ℝ</button>
+          <button class="k" onclick="ins('ℕ')">ℕ</button>
+          <button class="k" onclick="ins('ℤ')">ℤ</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Statistiques</div>
+        <div class="kbd-row">
+          <button class="k stat" onclick="ins('∑')">∑</button>
+          <button class="k stat" onclick="ins('x̄')">x̄</button>
+          <button class="k stat" onclick="ins('ȳ')">ȳ</button>
+          <button class="k stat" onclick="ins('σ')">σ</button>
+          <button class="k stat" onclick="ins('σ²')">σ²</button>
+          <button class="k stat" onclick="ins('s²')">s²</button>
+          <button class="k stat" onclick="ins('μ')">μ</button>
+          <button class="k stat" onclick="ins('ν')">ν</button>
+          <button class="k stat" onclick="ins('n')">n</button>
+          <button class="k stat" onclick="ins('N')">N</button>
+          <button class="k stat" onclick="ins('∏')">∏</button>
+          <button class="k stat" onclick="ins('Me')">Me</button>
+          <button class="k stat" onclick="ins('Mo')">Mo</button>
+          <button class="k stat" onclick="ins('CV')">CV</button>
+          <button class="k stat" onclick="ins('r')">r</button>
+          <button class="k stat" onclick="ins('R²')">R²</button>
+          <button class="k stat" onclick="ins('P(')">P(</button>
+          <button class="k stat" onclick="ins('E(X)')">E(X)</button>
+          <button class="k stat" onclick="ins('Var(X)')">Var(X)</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Calcul & Fonctions</div>
+        <div class="kbd-row">
+          <button class="k" onclick="ins('∞')">∞</button>
+          <button class="k" onclick="ins('√')">√</button>
+          <button class="k" onclick="ins('∛')">∛</button>
+          <button class="k" onclick="ins('∫')">∫</button>
+          <button class="k" onclick="ins('∂')">∂</button>
+          <button class="k" onclick="ins('∇')">∇</button>
+          <button class="k" onclick="ins('lim')">lim</button>
+          <button class="k" onclick="ins('log')">log</button>
+          <button class="k" onclick="ins('ln')">ln</button>
+          <button class="k" onclick="ins('exp')">exp</button>
+          <button class="k" onclick="ins('|x|')">|x|</button>
+          <button class="k" onclick="ins('⌊x⌋')">⌊x⌋</button>
+          <button class="k" onclick="ins('⌈x⌉')">⌈x⌉</button>
+          <button class="k" onclick="ins('!')">!</button>
+          <button class="k" onclick="ins('C(n,k)')">Cₙₖ</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Exposants & Indices</div>
+        <div class="kbd-row">
+          <button class="k" onclick="ins('²')">x²</button>
+          <button class="k" onclick="ins('³')">x³</button>
+          <button class="k" onclick="ins('⁴')">x⁴</button>
+          <button class="k" onclick="ins('ⁿ')">xⁿ</button>
+          <button class="k" onclick="ins('⁻¹')">x⁻¹</button>
+          <button class="k" onclick="ins('⁻²')">x⁻²</button>
+          <button class="k" onclick="ins('½')">½</button>
+          <button class="k" onclick="ins('⅓')">⅓</button>
+          <button class="k" onclick="ins('¼')">¼</button>
+          <button class="k" onclick="ins('¾')">¾</button>
+          <button class="k" onclick="ins('/')"> / </button>
+          <button class="k" onclick="ins('xᵢ')">xᵢ</button>
+          <button class="k" onclick="ins('x₁')">x₁</button>
+          <button class="k" onclick="ins('x₂')">x₂</button>
+          <button class="k" onclick="ins('fᵢ')">fᵢ</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Lettres grecques</div>
+        <div class="kbd-row">
+          <button class="k gr" onclick="ins('α')">α</button>
+          <button class="k gr" onclick="ins('β')">β</button>
+          <button class="k gr" onclick="ins('γ')">γ</button>
+          <button class="k gr" onclick="ins('Γ')">Γ</button>
+          <button class="k gr" onclick="ins('δ')">δ</button>
+          <button class="k gr" onclick="ins('Δ')">Δ</button>
+          <button class="k gr" onclick="ins('ε')">ε</button>
+          <button class="k gr" onclick="ins('ζ')">ζ</button>
+          <button class="k gr" onclick="ins('η')">η</button>
+          <button class="k gr" onclick="ins('θ')">θ</button>
+          <button class="k gr" onclick="ins('λ')">λ</button>
+          <button class="k gr" onclick="ins('Λ')">Λ</button>
+          <button class="k gr" onclick="ins('π')">π</button>
+          <button class="k gr" onclick="ins('Π')">Π</button>
+          <button class="k gr" onclick="ins('ρ')">ρ</button>
+          <button class="k gr" onclick="ins('σ')">σ</button>
+          <button class="k gr" onclick="ins('Σ')">Σ</button>
+          <button class="k gr" onclick="ins('τ')">τ</button>
+          <button class="k gr" onclick="ins('φ')">φ</button>
+          <button class="k gr" onclick="ins('Φ')">Φ</button>
+          <button class="k gr" onclick="ins('χ')">χ</button>
+          <button class="k gr" onclick="ins('χ²')">χ²</button>
+          <button class="k gr" onclick="ins('ψ')">ψ</button>
+          <button class="k gr" onclick="ins('ω')">ω</button>
+          <button class="k gr" onclick="ins('Ω')">Ω</button>
+        </div>
+      </div>
+
+      <div class="kbd-section">
+        <div class="kbd-label">Logique & Divers</div>
+        <div class="kbd-row">
+          <button class="k logic" onclick="ins('∀')">∀</button>
+          <button class="k logic" onclick="ins('∃')">∃</button>
+          <button class="k logic" onclick="ins('⇒')">⇒</button>
+          <button class="k logic" onclick="ins('⇔')">⇔</button>
+          <button class="k logic" onclick="ins('¬')">¬</button>
+          <button class="k logic" onclick="ins('∧')">∧</button>
+          <button class="k logic" onclick="ins('∨')">∨</button>
+          <button class="k" onclick="ins('→')">→</button>
+          <button class="k" onclick="ins('←')">←</button>
+          <button class="k" onclick="ins('↔')">↔</button>
+          <button class="k" onclick="ins('∝')">∝</button>
+          <button class="k" onclick="ins('∴')">∴</button>
+          <button class="k" onclick="ins('∵')">∵</button>
+          <button class="k" onclick="ins('°')">°</button>
+          <button class="k" onclick="ins('%')">%</button>
+          <button class="k" onclick="ins('‰')">‰</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INPUT ZONE -->
+  <div id="input-zone">
+    <button id="kbd-toggle" onclick="toggleKbd()">∑ Clavier math ▼</button>
+    <div id="input-row">
+      <textarea id="userInput" placeholder="Type your question.."></textarea>
+      <button id="sendBtn" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const WEBHOOK = 'https://promote1.app.n8n.cloud/webhook/9072b6e9-4f73-4360-bacd-b46c5af07615/chat';
+
+  /* Session */
+  if (!sessionStorage.getItem('sid'))
+    sessionStorage.setItem('sid', 'sess_' + Date.now());
+  const SID = sessionStorage.getItem('sid');
+
+  /* Auto-resize textarea */
+  const ta = document.getElementById('userInput');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 110) + 'px';
+  });
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  });
+
+  /* Clavier */
+  let kbdOpen = false;
+  function toggleKbd() {
+    kbdOpen = !kbdOpen;
+    document.getElementById('math-bar').classList.toggle('open', kbdOpen);
+    document.getElementById('kbd-toggle').textContent = '∑ Clavier math ' + (kbdOpen ? '▲' : '▼');
+  }
+  function ins(sym) {
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.slice(0, s) + sym + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + sym.length;
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+  }
+
+  /* Messages */
+  const box = document.getElementById('messages');
+  function addMsg(html, role) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + role;
+    d.innerHTML = html;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+    return d;
+  }
+
+  /* Envoi */
+  async function sendMsg() {
+    const text = ta.value.trim();
+    if (!text) return;
+    addMsg(text.replace(/</g,'&lt;'), 'user');
+    ta.value = ''; ta.style.height = 'auto';
+    document.getElementById('sendBtn').disabled = true;
+
+    const typing = addMsg('...', 'bot typing');
+    try {
+      const res = await fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sendMessage', chatInput: text, sessionId: SID })
+      });
+      const data = await res.json();
+      const reply = data.output || data.text || data.message || JSON.stringify(data);
+      typing.remove();
+      addMsg(reply.replace(/\n/g,'<br>'), 'bot');
+    } catch(err) {
+      typing.remove();
+      addMsg('⚠️ Erreur de connexion.', 'bot');
+    }
+    document.getElementById('sendBtn').disabled = false;
+    ta.focus();
+  }
+</script>
+</body>
+</html>
